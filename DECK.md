@@ -32,6 +32,7 @@ In a fast-paced world, managing daily tasks is complex. Traditional digital assi
 - Elevenlabs TTS
 - Deepgram STT
 - Silero VAD
+- Plivo (Internet phone number & SIP Trunk)
 - and Windsurf (for vibe coding)
 
 ---

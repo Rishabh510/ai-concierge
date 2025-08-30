@@ -1,3 +1,5 @@
+![AI Concierge](image.png)
+
 # AI Concierge: Your 24/7 Personal Assistant
 
 ## The Problem: Information Overload, Inconvenient Access

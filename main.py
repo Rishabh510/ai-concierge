@@ -33,7 +33,7 @@ CONTEXT_VARS = {
     "customer_name": "Rishabh",
     "city": "Bangalore",
     "call_type": "outbound",
-    "transfer_to": "+918860932771",
+    "phone_number": "+918860932771",
 }
 
 
@@ -104,39 +104,39 @@ async def _handle_agent_session(ctx: JobContext, agent: MasterAgent):
 
 async def entrypoint(ctx: JobContext):
     logger.info(f"Starting agent session for room {ctx.room.name}")
+    await ctx.connect()
 
     metadata = parse_metadata(ctx.job.metadata)
+    metadata.update(CONTEXT_VARS)
     logger.info(f"Job metadata: {metadata}")
     phone_number = metadata.get("phone_number")
 
-    if phone_number:
-        logger.info(f"Processing outbound call to {phone_number}")
-        sip_participant = await create_sip_participant(ctx, phone_number)
-        if not sip_participant:
-            logger.error("Failed to create SIP participant, ending session")
-            return
+    logger.info(f"Processing outbound call to {phone_number}")
+    sip_participant = await create_sip_participant(ctx, phone_number)
+    if not sip_participant:
+        logger.error("Failed to create SIP participant, ending session")
+        return
 
-        if not await wait_for_call_connection(ctx):
-            logger.error("Call failed to connect, ending session")
-            return
-        logger.info(f"Outbound call established to {phone_number}")
-    else:
-        logger.info("Processing inbound call")
-        participant = await ctx.wait_for_participant()
-        logger.info(f"Inbound call from participant: {participant.identity}") if participant else ""
+    if not await wait_for_call_connection(ctx):
+        logger.error("Call failed to connect, ending session")
+        return
+    logger.info(f"Outbound call established to {phone_number}")
 
-    await _handle_agent_session(ctx, MasterAgent())
+    await _handle_agent_session(ctx, MasterAgent(context_vars=metadata))
 
 
 async def entrypoint_webtest(ctx: JobContext):
     """Test agent with livekit playground"""
     logger.info(f"Starting agent session for room {ctx.room.name} and metadata {ctx.job.metadata}")
+    await ctx.connect()
+
     ctx.log_context_fields = {"room": ctx.room.name}
     await _handle_agent_session(ctx, MasterAgent(context_vars=CONTEXT_VARS))
 
 
 if __name__ == "__main__":
-    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint_webtest, prewarm_fnc=prewarm))
+    cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint, prewarm_fnc=prewarm))
+    # cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint_webtest, prewarm_fnc=prewarm))
 
 
 """NOTE:

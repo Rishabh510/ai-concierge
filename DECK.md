@@ -23,6 +23,17 @@ In a fast-paced world, managing daily tasks is complex. Traditional digital assi
 - What's the weather like in Bangalore?
 - Suggest some 4-star Italian restaurants near me.
 - What is domino effect?
+
+
+## **Tools used**
+- Python 3.13
+- Livekit (Orchestrator for voice agents)
+- OpenAI LLM
+- Elevenlabs TTS
+- Deepgram STT
+- Silero VAD
+- and Windsurf (for vibe coding)
+
 ---
 
 ## Future Scope

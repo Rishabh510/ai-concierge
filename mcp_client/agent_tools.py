@@ -14,6 +14,7 @@ from mcp import CallToolRequest
 
 logger = logging.getLogger("mcp-agent-tools")
 
+
 class MCPToolsIntegration:
     """
     Helper class for integrating MCP tools with LiveKit agents.
@@ -21,9 +22,9 @@ class MCPToolsIntegration:
     """
 
     @staticmethod
-    async def prepare_dynamic_tools(mcp_servers: List[MCPServer],
-                                   convert_schemas_to_strict: bool = True,
-                                   auto_connect: bool = True) -> List[Callable]:
+    async def prepare_dynamic_tools(
+        mcp_servers: List[MCPServer], convert_schemas_to_strict: bool = True, auto_connect: bool = True
+    ) -> List[Callable]:
         """
         Fetches tools from multiple MCP servers and prepares them for use with LiveKit agents.
 
@@ -90,10 +91,7 @@ class MCPToolsIntegration:
         annotations = {}
         schema_props = tool.params_json_schema.get("properties", {})
         schema_required = set(tool.params_json_schema.get("required", []))
-        type_map = {
-            "string": str, "integer": int, "number": float,
-            "boolean": bool, "array": list, "object": dict,
-        }
+        type_map = {"string": str, "integer": int, "number": float, "boolean": bool, "array": list, "object": dict}
 
         # Build parameters from the schema properties
         for p_name, p_details in schema_props.items():
@@ -103,12 +101,9 @@ class MCPToolsIntegration:
 
             # Use inspect.Parameter.empty for required params, None otherwise
             default = inspect.Parameter.empty if p_name in schema_required else p_details.get("default", None)
-            params.append(inspect.Parameter(
-                name=p_name,
-                kind=inspect.Parameter.KEYWORD_ONLY,
-                annotation=py_type,
-                default=default
-            ))
+            params.append(
+                inspect.Parameter(name=p_name, kind=inspect.Parameter.KEYWORD_ONLY, annotation=py_type, default=default)
+            )
 
         # Define the actual function that will be called by the agent
         async def tool_impl(**kwargs):
@@ -128,9 +123,9 @@ class MCPToolsIntegration:
         return function_tool()(tool_impl)
 
     @staticmethod
-    async def register_with_agent(agent, mcp_servers: List[MCPServer],
-                                 convert_schemas_to_strict: bool = True,
-                                 auto_connect: bool = True) -> List[Callable]:
+    async def register_with_agent(
+        agent, mcp_servers: List[MCPServer], convert_schemas_to_strict: bool = True, auto_connect: bool = True
+    ) -> List[Callable]:
         """
         Helper method to prepare and register MCP tools with a LiveKit agent.
 
@@ -145,9 +140,7 @@ class MCPToolsIntegration:
         """
         # Prepare the dynamic tools
         tools = await MCPToolsIntegration.prepare_dynamic_tools(
-            mcp_servers,
-            convert_schemas_to_strict=convert_schemas_to_strict,
-            auto_connect=auto_connect
+            mcp_servers, convert_schemas_to_strict=convert_schemas_to_strict, auto_connect=auto_connect
         )
 
         # Register with the agent
@@ -165,8 +158,9 @@ class MCPToolsIntegration:
         return tools
 
     @staticmethod
-    async def create_agent_with_tools(agent_class, mcp_servers: List[MCPServer], agent_kwargs: Dict = None,
-                                    convert_schemas_to_strict: bool = True) -> Any:
+    async def create_agent_with_tools(
+        agent_class, mcp_servers: List[MCPServer], agent_kwargs: Dict = None, convert_schemas_to_strict: bool = True
+    ) -> Any:
         """
         Factory method to create and initialize an agent with MCP tools already loaded.
 
@@ -196,7 +190,7 @@ class MCPToolsIntegration:
         tools = await MCPToolsIntegration.prepare_dynamic_tools(
             mcp_servers,
             convert_schemas_to_strict=convert_schemas_to_strict,
-            auto_connect=False  # Already connected above
+            auto_connect=False,  # Already connected above
         )
 
         # Register tools with agent

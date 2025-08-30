@@ -6,7 +6,6 @@ from datetime import datetime
 from livekit.agents import Agent, function_tool, RunContext, get_job_context
 from livekit.plugins import deepgram, openai, elevenlabs
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
-from livekit import api
 from .math_agent import MathAgent
 from .weather_agent import WeatherAgent
 from tools.budget_calculator import calculate_budget, format_budget_for_speech
@@ -22,7 +21,8 @@ import re
 from livekit import rtc
 from livekit.agents.voice import ModelSettings
 from typing import AsyncIterable
-from constants import SYSTEM_PROMPT, TEST_PROMPT
+from constants import SYSTEM_PROMPT
+from livekit.agents import mcp
 
 logger = logging.getLogger("master-agent")
 
@@ -31,9 +31,7 @@ class MasterAgent(Agent):
     """Master agent that can hand off to specialized agents with enhanced call management"""
 
     def __init__(self, chat_ctx=None, context_vars=None):
-        __name__ = "master-agent"
-
-        instructions = TEST_PROMPT
+        instructions = SYSTEM_PROMPT
         if context_vars:
             instructions = instructions.format(
                 customer_name=context_vars.get("customer_name"), city=context_vars.get("city")
@@ -46,6 +44,7 @@ class MasterAgent(Agent):
             tts=elevenlabs.TTS(voice_id="H8bdWZHK2OgZwTN7ponr"),
             turn_detection=MultilingualModel(),
             chat_ctx=chat_ctx,
+            mcp_servers=[],
         )
 
         self.call_metadata = context_vars or {}
@@ -87,7 +86,7 @@ class MasterAgent(Agent):
 
         # First greeting message
         await self.session.generate_reply(
-            user_input=f"Good {self.call_metadata.get('greeting_time', 'evening')}, am I speaking with {self.call_metadata.get('salutation', '')} {self.call_metadata.get('customer_name', '')}?",
+            user_input=f"Good {self.call_metadata.get('greeting_time', 'evening')}, {self.call_metadata.get('salutation', '')} {self.call_metadata.get('customer_name', '')}. How can I help you?",
             allow_interruptions=True,
         )
 
@@ -95,6 +94,9 @@ class MasterAgent(Agent):
         """Enhanced exit handling with call analytics"""
         # Use utility function for analytics
         log_call_analytics(self.call_metadata, self.call_start_time, self.transfer_attempts, "completed")
+        ctx = get_job_context()
+        if ctx is not None:
+            await end_call_gracefully(ctx, "User requested call end")
 
     @function_tool()
     async def handoff_to_math_agent(self, context: RunContext):

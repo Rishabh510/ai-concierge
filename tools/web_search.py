@@ -6,12 +6,9 @@ import os
 import requests
 import logging
 from typing import Dict, Any, List
-from dotenv import load_dotenv
+from constants import SERPER_API_KEY
 
-load_dotenv()
 logger = logging.getLogger("web-search-tool")
-
-SERPER_API_KEY = os.getenv("SERPER_API_KEY", "")
 
 
 def web_search(query: str, num_results: int = 5) -> Dict[str, Any]:

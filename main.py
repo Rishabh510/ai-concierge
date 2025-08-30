@@ -22,7 +22,11 @@ from telephony_utils import wait_for_participant_with_timeout, parse_metadata
 
 
 load_dotenv(dotenv_path=".env.local")
-logger = logging.getLogger("master-agent")
+logging.basicConfig(
+    level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S'
+)
+logger = logging.getLogger("main")
+
 CONTEXT_VARS = {
     "greeting_time": "evening",
     "salutation": "Mr.",
@@ -132,9 +136,6 @@ async def entrypoint_webtest(ctx: JobContext):
 
 
 if __name__ == "__main__":
-    # logging.basicConfig(
-    #     level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S'
-    # )
     cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint_webtest, prewarm_fnc=prewarm))
 
 

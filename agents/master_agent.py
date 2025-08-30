@@ -20,7 +20,6 @@ from livekit import rtc
 from livekit.agents.voice import ModelSettings
 from typing import AsyncIterable
 from constants import SYSTEM_PROMPT
-from livekit.agents import mcp
 
 logger = logging.getLogger("master-agent")
 

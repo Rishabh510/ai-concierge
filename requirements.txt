@@ -1,0 +1,22 @@
+# Livekit packages
+livekit==1.0.12
+livekit-agents==1.2.4
+livekit-agents[google]==1.2.4
+livekit-agents[elevenlabs]==1.2.4
+livekit-api==1.0.5
+livekit-blingfire==1.0.0
+livekit-plugins-cartesia==1.2.4
+livekit-plugins-deepgram==1.2.4
+livekit-plugins-elevenlabs==1.2.4
+livekit-plugins-noise-cancellation==0.2.5
+livekit-plugins-openai==1.2.4
+livekit-plugins-silero==1.2.4
+livekit-plugins-turn-detector==1.2.4
+livekit-protocol==1.0.5
+
+python-dotenv
+
+# Additional dependencies for telephony integration
+typing-extensions>=4.0.0
+# AWS SDK for S3 integration
+boto3>=1.34.0

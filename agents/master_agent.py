@@ -8,7 +8,6 @@ from livekit.plugins import deepgram, openai, elevenlabs
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 from .math_agent import MathAgent
 from .weather_agent import WeatherAgent
-from tools.budget_calculator import calculate_budget, format_budget_for_speech
 from tools.web_search import web_search as perform_web_search, format_results_for_speech
 from telephony_utils import (
     transfer_call_to_human,
@@ -42,7 +41,7 @@ class MasterAgent(Agent):
             instructions=instructions,
             stt=deepgram.STT(),
             llm=openai.LLM(model="gpt-4o-mini"),
-            tts=elevenlabs.TTS(voice_id="H8bdWZHK2OgZwTN7ponr"),
+            tts=elevenlabs.TTS(voice_id="H8bdWZHK2OgZwTN7ponr", voice_settings={"speed": 1.2}),
             turn_detection=MultilingualModel(),
             chat_ctx=chat_ctx,
             mcp_servers=[],
@@ -98,30 +97,6 @@ class MasterAgent(Agent):
         ctx = get_job_context()
         if ctx is not None:
             await end_call_gracefully(ctx, "User requested call end")
-
-    @function_tool()
-    async def handoff_to_math_agent(self, context: RunContext):
-        """Transfer the user to a specialized math agent for calculations.
-
-        Use this when the user needs mathematical calculations, arithmetic operations,
-        or any computational tasks.
-        """
-        await self.session.generate_reply(
-            instructions="I'll transfer you to our math specialist who can help with calculations."
-        )
-        return "Transferring to math specialist", MathAgent(chat_ctx=self.chat_ctx)
-
-    @function_tool()
-    async def handoff_to_weather_agent(self, context: RunContext):
-        """Transfer the user to a specialized weather agent for weather information.
-
-        Use this when the user asks about weather, temperature, climate,
-        or weather conditions for any location.
-        """
-        await self.session.generate_reply(
-            instructions="I'll transfer you to our weather specialist who can provide weather information."
-        )
-        return "Transferring to weather specialist", WeatherAgent(chat_ctx=self.chat_ctx)
 
     @function_tool()
     async def end_call(self, context: RunContext):
@@ -213,7 +188,7 @@ class MasterAgent(Agent):
     async def web_search(self, context: RunContext, query: str, num_results: int = 3):
         """Search the web for information.
 
-        Use this when the user specifically asks to search the web for information.
+        Use this when the user specifically asks to search the web for information like getting news, weather forecast, any query which can be searched on the web to get the answer.
 
         Args:
             query: The search query to find relevant web content.
@@ -222,74 +197,23 @@ class MasterAgent(Agent):
         try:
             logger.info(f"Performing web search for query: '{query}'")
 
-            search_data = await asyncio.to_thread(
-                perform_web_search,
-                query=query,
-                num_results=num_results
-            )
+            search_data = await asyncio.to_thread(perform_web_search, query=query, num_results=num_results)
 
             if "error" in search_data:
                 raise Exception(search_data["error"])
 
             # The instruction will be to summarize these results
             formatted_results = format_results_for_speech(search_data.get("results", []))
-            instruction = f"Summarize the following search results for the user's query '{query}':\n\n{formatted_results}"
-
-            await self.session.generate_reply(
-                instructions=instruction
+            instruction = (
+                f"Summarize the following search results for the user's query '{query}':\n\n{formatted_results}"
             )
 
-            return {
-                "results_count": len(search_data.get("results", [])),
-            }
+            await self.session.generate_reply(instructions=instruction)
+
+            return {"results_count": len(search_data.get("results", []))}
         except Exception as e:
             logger.error(f"Error during web search: {e}")
             await self.session.generate_reply(
                 instructions="I apologize, but I'm having trouble with the web search right now. Please try again later."
             )
             return {"error": "Web search failed"}
-
-    @function_tool()
-    async def budget_calculator(self, context: RunContext, number_of_events: int, number_of_people: int, location: str):
-        """Calculate wedding service budget based on events, people count, and location.
-
-        Use this when customers ask about costs, pricing, or budget estimates.
-        This tool provides detailed budget breakdown for décor, photography, and catering services.
-
-        Args:
-            number_of_events: Number of wedding events (wedding, reception, etc.)
-            number_of_people: Total number of guests across all events
-            location: City/location for the wedding
-        """
-        try:
-            logger.info(f"Calculating budget for {number_of_events} events, {number_of_people} people in {location}")
-
-            budget_data = calculate_budget(number_of_events, number_of_people, location)
-            formatted_budget = format_budget_for_speech(budget_data)
-
-            await self.session.generate_reply(
-                instructions=f"Share the budget calculation with the customer: {formatted_budget}"
-            )
-
-            # Log budget calculation for analytics
-            budget_analytics = {
-                "events": number_of_events,
-                "people": number_of_people,
-                "location": location,
-                "total_budget": budget_data["total_budget_lakhs"],
-                "customer_name": self.call_metadata.get("customer_name"),
-                "phone_number": self.call_metadata.get("phone_number"),
-            }
-            logger.info(f"Budget calculated: {budget_analytics}")
-
-            return {
-                "budget_breakdown": budget_data,
-                "formatted_response": formatted_budget,
-                "total_budget_lakhs": budget_data["total_budget_lakhs"],
-            }
-        except Exception as e:
-            logger.error(f"Error calculating budget: {e}")
-            await self.session.generate_reply(
-                instructions="I apologize, but I'm having trouble calculating the budget right now. Let me connect you with our wedding expert who can provide accurate pricing information."
-            )
-            return {"error": "Budget calculation failed"}

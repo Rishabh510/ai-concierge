@@ -22,9 +22,9 @@ from telephony_utils import wait_for_participant_with_timeout, parse_metadata
 
 
 load_dotenv(dotenv_path=".env.local")
-logging.basicConfig(
-    level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S'
-)
+# logging.basicConfig(
+#     level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S'
+# )
 logger = logging.getLogger("main")
 
 CONTEXT_VARS = {

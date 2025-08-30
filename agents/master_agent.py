@@ -38,7 +38,7 @@ class MasterAgent(Agent):
             instructions=instructions,
             stt=deepgram.STT(),
             llm=openai.LLM(model="gpt-4o-mini"),
-            tts=elevenlabs.TTS(voice_id="H8bdWZHK2OgZwTN7ponr", voice_settings={"speed": 1.2}),
+            tts=elevenlabs.TTS(model="eleven_flash_v2_5", voice_id="H8bdWZHK2OgZwTN7ponr"),
             turn_detection=MultilingualModel(),
             chat_ctx=chat_ctx,
             mcp_servers=[],
@@ -194,23 +194,15 @@ class MasterAgent(Agent):
         try:
             logger.info(f"Performing web search for query: '{query}'")
 
-            search_data = await asyncio.to_thread(perform_web_search, query=query, num_results=num_results)
+            search_data = await perform_web_search(query=query, num_results=num_results)
 
             if "error" in search_data:
                 raise Exception(search_data["error"])
 
             # The instruction will be to summarize these results
             formatted_results = format_results_for_speech(search_data.get("results", []))
-            instruction = (
-                f"Summarize the following search results for the user's query '{query}':\n\n{formatted_results}"
-            )
-
-            await self.session.generate_reply(instructions=instruction)
-
-            return {"results_count": len(search_data.get("results", []))}
+            logger.info(f"Formatted results for speech: {formatted_results}")
+            return {"results": formatted_results}
         except Exception as e:
             logger.error(f"Error during web search: {e}")
-            await self.session.generate_reply(
-                instructions="I apologize, but I'm having trouble with the web search right now. Please try again later."
-            )
             return {"error": "Web search failed"}

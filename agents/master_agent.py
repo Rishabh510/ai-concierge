@@ -6,8 +6,6 @@ from datetime import datetime
 from livekit.agents import Agent, function_tool, RunContext, get_job_context
 from livekit.plugins import deepgram, openai, elevenlabs
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
-from .math_agent import MathAgent
-from .weather_agent import WeatherAgent
 from tools.web_search import web_search as perform_web_search, format_results_for_speech
 from telephony_utils import (
     transfer_call_to_human,

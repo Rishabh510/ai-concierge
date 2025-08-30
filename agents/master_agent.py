@@ -9,6 +9,7 @@ from livekit.plugins.turn_detector.multilingual import MultilingualModel
 from .math_agent import MathAgent
 from .weather_agent import WeatherAgent
 from tools.budget_calculator import calculate_budget, format_budget_for_speech
+from tools.web_search import web_search as perform_web_search, format_results_for_speech
 from telephony_utils import (
     transfer_call_to_human,
     end_call_gracefully,
@@ -207,6 +208,46 @@ class MasterAgent(Agent):
                 return "Transfer error, continuing with AI assistance"
 
         return "Transfer attempted"
+
+    @function_tool()
+    async def web_search(self, context: RunContext, query: str, num_results: int = 3):
+        """Search the web for information.
+
+        Use this when the user specifically asks to search the web for information.
+
+        Args:
+            query: The search query to find relevant web content.
+            num_results: Number of search results to return (default: 3, max: 10).
+        """
+        try:
+            logger.info(f"Performing web search for query: '{query}'")
+
+            search_data = await asyncio.to_thread(
+                perform_web_search,
+                query=query,
+                num_results=num_results
+            )
+
+            if "error" in search_data:
+                raise Exception(search_data["error"])
+
+            # The instruction will be to summarize these results
+            formatted_results = format_results_for_speech(search_data.get("results", []))
+            instruction = f"Summarize the following search results for the user's query '{query}':\n\n{formatted_results}"
+
+            await self.session.generate_reply(
+                instructions=instruction
+            )
+
+            return {
+                "results_count": len(search_data.get("results", [])),
+            }
+        except Exception as e:
+            logger.error(f"Error during web search: {e}")
+            await self.session.generate_reply(
+                instructions="I apologize, but I'm having trouble with the web search right now. Please try again later."
+            )
+            return {"error": "Web search failed"}
 
     @function_tool()
     async def budget_calculator(self, context: RunContext, number_of_events: int, number_of_people: int, location: str):

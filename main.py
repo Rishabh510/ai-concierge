@@ -6,7 +6,6 @@ from typing import Optional
 from dotenv import load_dotenv
 from livekit.agents import (
     AgentSession,
-    AutoSubscribe,
     JobContext,
     JobProcess,
     WorkerOptions,
@@ -72,11 +71,22 @@ async def wait_for_call_connection(ctx: JobContext, timeout: int = 30) -> bool:
     return participant is not None
 
 
-async def _handle_agent_session(
-    ctx: JobContext, agent: MasterAgent, session: AgentSession, room_input_options: RoomInputOptions
-):
+async def _handle_agent_session(ctx: JobContext, agent: MasterAgent):
     """Handle the agent session lifecycle, including startup and cleanup."""
     try:
+        session = AgentSession(
+            min_endpointing_delay=0.8,
+            max_endpointing_delay=2.5,
+            vad=ctx.proc.userdata["vad"],
+            preemptive_generation=True,
+        )
+
+        @session.on("agent_false_interruption")
+        def _on_agent_false_interruption(ev: AgentFalseInterruptionEvent):
+            logger.info("false positive interruption, resuming")
+            session.generate_reply(instructions=ev.extra_instructions or NOT_GIVEN)
+
+        room_input_options = RoomInputOptions(noise_cancellation=noise_cancellation.BVC(), close_on_disconnect=True)
         await session.start(room=ctx.room, agent=agent, room_input_options=room_input_options)
         logger.info("Agent session completed successfully")
     except Exception as e:
@@ -90,9 +100,6 @@ async def _handle_agent_session(
 
 async def entrypoint(ctx: JobContext):
     logger.info(f"Starting agent session for room {ctx.room.name}")
-
-    await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
-    logger.info("Successfully connected to room")
 
     metadata = parse_metadata(ctx.job.metadata)
     logger.info(f"Job metadata: {metadata}")
@@ -112,35 +119,16 @@ async def entrypoint(ctx: JobContext):
     else:
         logger.info("Processing inbound call")
         participant = await ctx.wait_for_participant()
-        logger.info(f"Inbound call from participant: {participant.identity}")
+        logger.info(f"Inbound call from participant: {participant.identity}") if participant else ""
 
-    session = AgentSession(vad=ctx.proc.userdata["vad"], min_endpointing_delay=0.8, max_endpointing_delay=2.5)
-
-    room_input_options = RoomInputOptions(noise_cancellation=noise_cancellation.BVC())
-
-    await _handle_agent_session(ctx, MasterAgent(), session, room_input_options)
+    await _handle_agent_session(ctx, MasterAgent())
 
 
 async def entrypoint_webtest(ctx: JobContext):
     """Test agent with livekit playground"""
     logger.info(f"Starting agent session for room {ctx.room.name} and metadata {ctx.job.metadata}")
     ctx.log_context_fields = {"room": ctx.room.name}
-
-    await ctx.connect(auto_subscribe=AutoSubscribe.AUDIO_ONLY)
-    logger.info("Successfully connected to room")
-
-    session = AgentSession(
-        min_endpointing_delay=0.8, max_endpointing_delay=2.5, vad=ctx.proc.userdata["vad"], preemptive_generation=True
-    )
-
-    @session.on("agent_false_interruption")
-    def _on_agent_false_interruption(ev: AgentFalseInterruptionEvent):
-        logger.info("false positive interruption, resuming")
-        session.generate_reply(instructions=ev.extra_instructions or NOT_GIVEN)
-
-    room_input_options = RoomInputOptions(noise_cancellation=noise_cancellation.BVC(), close_on_disconnect=True)
-
-    await _handle_agent_session(ctx, MasterAgent(context_vars=CONTEXT_VARS), session, room_input_options)
+    await _handle_agent_session(ctx, MasterAgent(context_vars=CONTEXT_VARS))
 
 
 if __name__ == "__main__":

@@ -24,7 +24,8 @@ import re
 from livekit import rtc
 from livekit.agents.voice import ModelSettings
 from typing import AsyncIterable
-from constants import SYSTEM_PROMPT, TEST_PROMPT
+from constants import SYSTEM_PROMPT
+from livekit.agents import mcp
 
 logger = logging.getLogger("master-agent")
 
@@ -35,7 +36,7 @@ class MasterAgent(Agent):
     def __init__(self, chat_ctx=None, context_vars=None):
         __name__ = "master-agent"
 
-        instructions = TEST_PROMPT
+        instructions = SYSTEM_PROMPT
         if context_vars:
             instructions = instructions.format(
                 customer_name=context_vars.get("customer_name"), city=context_vars.get("city")

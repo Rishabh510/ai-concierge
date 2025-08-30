@@ -132,9 +132,9 @@ async def entrypoint_webtest(ctx: JobContext):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S'
-    )
+    # logging.basicConfig(
+    #     level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', datefmt='%H:%M:%S'
+    # )
     cli.run_app(WorkerOptions(entrypoint_fnc=entrypoint_webtest, prewarm_fnc=prewarm))
 
 

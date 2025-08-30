@@ -7,6 +7,8 @@ from livekit.agents import Agent, function_tool, RunContext, get_job_context
 from livekit.plugins import deepgram, openai, elevenlabs
 from livekit.plugins.turn_detector.multilingual import MultilingualModel
 from livekit import api
+from mcp_client.agent_tools import MCPToolsIntegration
+from mcp_client.server import MCPServer
 from .math_agent import MathAgent
 from .weather_agent import WeatherAgent
 from tools.budget_calculator import calculate_budget, format_budget_for_speech
@@ -52,6 +54,7 @@ class MasterAgent(Agent):
         self.call_start_time = datetime.now()
         self.transfer_attempts = 0
         self.max_transfer_attempts = 3
+        self.mcp_servers = [MCPServer(url="http://127.0.0.1:8080", name="local-mcp-server")]
 
     # Overriding TTS node to add pronunciation rules
     async def tts_node(self, text: AsyncIterable[str], model_settings: ModelSettings) -> AsyncIterable[rtc.AudioFrame]:
@@ -84,6 +87,9 @@ class MasterAgent(Agent):
                 if v is not None:
                     self.call_metadata[k] = v
             logger.info(f"Starting {self.call_metadata['call_type']} call with metadata: {self.call_metadata}")
+
+        # Register MCP tools
+        await MCPToolsIntegration.register_with_agent(self, self.mcp_servers)
 
         # First greeting message
         await self.session.generate_reply(

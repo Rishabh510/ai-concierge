@@ -182,26 +182,25 @@ class MasterAgent(Agent):
         return "Transfer attempted"
 
     @function_tool()
-    async def web_search(self, context: RunContext, query: str, num_results: int = 3):
+    async def web_search(self, context: RunContext, query: str, num_results: int = 1):
         """Search the web for information.
 
         Use this when the user specifically asks to search the web for information like getting news, weather forecast, any query which can be searched on the web to get the answer.
 
         Args:
             query: The search query to find relevant web content.
-            num_results: Number of search results to return (default: 3, max: 10).
+            num_results: Number of search results to return (default: 1, max: 10).
         """
         try:
             logger.info(f"Performing web search for query: '{query}'")
 
-            search_data = await perform_web_search(query=query, num_results=num_results)
+            search_data = perform_web_search(query=query, num_results=num_results)
 
             if "error" in search_data:
                 raise Exception(search_data["error"])
 
             # The instruction will be to summarize these results
             formatted_results = format_results_for_speech(search_data.get("results", []))
-            logger.info(f"Formatted results for speech: {formatted_results}")
             return {"results": formatted_results}
         except Exception as e:
             logger.error(f"Error during web search: {e}")
